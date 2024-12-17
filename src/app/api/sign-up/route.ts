@@ -138,6 +138,148 @@
 //         }) 
 //     }
 // }
+//--------------------------------------------------------------------------------
+
+// import bcrypt from 'bcryptjs';
+// import { PrismaClient } from '@prisma/client';
+// import { sendVerificationEmail } from '@/helpers/sendVerificationEmail';
+
+// const prisma = new PrismaClient();
+
+// export async function POST(request: Request) {
+//     try {
+       
+//         const  { username, email, password } = await request.json();
+       
+
+//         if (!username || !email || !password) {
+//             console.log('Missing required fields:', { username, email, password });
+//             return new Response(
+//                 JSON.stringify({
+//                     success: false,
+//                     message: 'Username, email, and password are required.',
+//                 }),
+//                 { status: 400 }
+//             );
+//         }
+
+//         const existingUserByUsername = await prisma.user.findFirst({
+//             where: {
+//                 AND: [{ username }, 
+//                     // { isVerified: true }
+//                 ],
+//             },
+//         });
+
+//         if (existingUserByUsername) {
+//             console.log('Username already taken:', username);
+//             return new Response(
+//                 JSON.stringify({
+//                     success: false,
+//                     message: 'Username is already taken.',
+//                 }),
+//                 { status: 400 }
+//             );
+//         }
+
+  
+//         const existingUserByEmail = await prisma.user.findUnique({
+//             where: { email },
+//         });
+
+//         const verifyCode = Math.floor(10000 + Math.random() * 900000).toString();
+//         const hashedPassword = await bcrypt.hash(password, 10);
+
+//         if (existingUserByEmail) {
+//             if (existingUserByEmail.isVerified) {
+//                 console.log('Email already verified:', email);
+//                 return new Response(
+//                     JSON.stringify({
+//                         success: false,
+//                         message: 'User already exists with this email.',
+//                     }),
+//                     { status: 400 }
+//                 );
+//             }
+
+//             console.log('Updating unverified user:', email);
+//             const verifyCodeExpiry = new Date(Date.now() + 3600000);
+
+//             await prisma.user.update({
+//                 where: { email },
+//                 data: {
+//                     password: hashedPassword,
+//                     verifyCode,
+//                     verifyCodeExpiry,
+//                 },
+//             });
+//         }
+//          else {
+           
+//             console.log('Creating new user:', { username, email,hashedPassword,password });
+//             const verifyCodeExpiry = new Date(Date.now() + 3600000);
+
+//             await prisma.user.create({
+//                 data: {
+//                     username,
+//                     email,
+//                     password: hashedPassword,
+//                     verifyCode,
+//                     verifyCodeExpiry,
+//                     isVerified: true,
+//                     isAcceptingMessage: true,
+//                     messages: {
+//                         create: [],
+//                     },
+//                 },
+//             });
+//         }
+        
+//         // const emailResponse = await sendVerificationEmail(email, username, verifyCode);
+
+//         //console.log('Email response:', emailResponse);
+
+
+//        // if (!emailResponse || !emailResponse.success) {
+
+//            // console.log('Failed to send verification email:', emailResponse);
+
+//         // return new Response(
+//         //     JSON.stringify({
+//         //         success: false,
+//         //         message: emailResponse?.message || 'Failed to send verification email.',
+//         //     }),
+//         //     { status: 500 }
+            
+//         // );
+    
+
+//         // }
+        
+
+
+//         return new Response(
+//             JSON.stringify({
+//                 success: true,
+//                 message: 'User registered successfully. ',
+//             }),
+//             { status: 200 }
+//         );
+        
+//     } 
+    
+//     catch (error) {
+//         console.error('Error during registration:', error);
+
+//         return new Response(
+//             JSON.stringify({
+//                 success: false,
+//                 message: 'Error registering user',
+//             }),
+//             { status: 500 }
+//         );
+//     }
+// }
 
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
@@ -147,12 +289,11 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
     try {
-       
-        const  { username, email, password } = await request.json();
-       
+        // Parse the incoming request
+        const { username, email, password } = await request.json();
 
+        // Validate the request body
         if (!username || !email || !password) {
-            console.log('Missing required fields:', { username, email, password });
             return new Response(
                 JSON.stringify({
                     success: false,
@@ -162,14 +303,14 @@ export async function POST(request: Request) {
             );
         }
 
+        // Check if the username already exists
         const existingUserByUsername = await prisma.user.findFirst({
             where: {
-                AND: [{ username }, { isVerified: true }],
+                username,
             },
         });
 
         if (existingUserByUsername) {
-            console.log('Username already taken:', username);
             return new Response(
                 JSON.stringify({
                     success: false,
@@ -179,7 +320,7 @@ export async function POST(request: Request) {
             );
         }
 
-  
+        // Check if the email already exists
         const existingUserByEmail = await prisma.user.findUnique({
             where: { email },
         });
@@ -187,9 +328,10 @@ export async function POST(request: Request) {
         const verifyCode = Math.floor(10000 + Math.random() * 900000).toString();
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        let verifyCodeExpiry = new Date(Date.now() + 3600000); // 1 hour expiry
+
         if (existingUserByEmail) {
             if (existingUserByEmail.isVerified) {
-                console.log('Email already verified:', email);
                 return new Response(
                     JSON.stringify({
                         success: false,
@@ -199,9 +341,7 @@ export async function POST(request: Request) {
                 );
             }
 
-            console.log('Updating unverified user:', email);
-            const verifyCodeExpiry = new Date(Date.now() + 3600000);
-
+            // Update unverified user with new password and verification code
             await prisma.user.update({
                 where: { email },
                 data: {
@@ -211,10 +351,7 @@ export async function POST(request: Request) {
                 },
             });
         } else {
-           
-            console.log('Creating new user:', { username, email,hashedPassword,password });
-            const verifyCodeExpiry = new Date(Date.now() + 3600000);
-
+            // Create a new user with unverified status
             await prisma.user.create({
                 data: {
                     username,
@@ -222,7 +359,7 @@ export async function POST(request: Request) {
                     password: hashedPassword,
                     verifyCode,
                     verifyCodeExpiry,
-                    isVerified: false,
+                    isVerified: false, // New users are not verified by default
                     isAcceptingMessage: true,
                     messages: {
                         create: [],
@@ -230,35 +367,20 @@ export async function POST(request: Request) {
                 },
             });
         }
-        console.log("1");
-        
+
+        // Send verification email (Uncomment and handle email properly)
         const emailResponse = await sendVerificationEmail(email, username, verifyCode);
-        console.log("2");
-
-        console.log('Email response:', emailResponse);
-        console.log("3");
-
-
-        if (!emailResponse || !emailResponse.success) {
-        console.log("4");
-
-            console.log('Failed to send verification email:', emailResponse);
-        console.log("5");
-
-        return new Response(
-            JSON.stringify({
-                success: false,
-                message: emailResponse?.message || 'Failed to send verification email.',
-            }),
-            { status: 500 }
-            
-        );
-    
-
+        if (!emailResponse.success) {
+            return new Response(
+                JSON.stringify({
+                    success: false,
+                    message: 'Failed to send verification email.',
+                }),
+                { status: 500 }
+            );
         }
-        console.log("6");
 
-
+        // Return success message
         return new Response(
             JSON.stringify({
                 success: true,
@@ -266,16 +388,14 @@ export async function POST(request: Request) {
             }),
             { status: 200 }
         );
-        
-    } 
-    
-    catch (error) {
+
+    } catch (error) {
         console.error('Error during registration:', error);
 
         return new Response(
             JSON.stringify({
                 success: false,
-                message: 'Error registering user',
+                message: 'Error registering user.',
             }),
             { status: 500 }
         );

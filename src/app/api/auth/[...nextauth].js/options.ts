@@ -13,6 +13,8 @@ export const authOptions:NextAuthOptions={
                 email:{label:"Email",type:"text"},
                 password:{label:"password",type:"password"}
             },
+            
+            
             async authorize(credentials:any):Promise<any>{
                 console.log(credentials);
                 
@@ -21,10 +23,15 @@ export const authOptions:NextAuthOptions={
                     const user = await prisma.user.findFirst({
                         where:{
                            
-                                email:credentials.identifier.email
+                                // email:credentials.identifier.email
+
+                                email: credentials.email
                             
                         }
                     })
+                    console.log(user);
+                    console.log('User found:', user ? 'Yes' : 'No');
+                    
 
                     if(!user){
                         throw new Error('No user Found with that Email')
@@ -35,32 +42,37 @@ export const authOptions:NextAuthOptions={
                     }
 
                     const isPasswordCorrect = await bcrypt.compare(credentials.password,user.password);
-
+                    
+                    console.log('Password verification:', isPasswordCorrect);
                     if(isPasswordCorrect){
                         return user
                     }else{
                         throw new Error('Invalid Password')
                     }
+
                 } catch (error:any) {
-                    throw new Error(error)
+                    throw new Error("options error",error)
                 }
             }
         })
     ],
     callbacks:{
         async jwt({ token, user }) {
+            console.log("JWT Callback - User:", user);
             if(user){
                 
-                token.id = user.id    //next auth ko nhi pata woh field esliye hume define karna hoga 
+                token.id = user.id?.toString()    //next auth ko nhi pata woh field esliye hume define karna hoga 
                 token.isVerified = user.isVerified
                 token.isAcceptingMessage=user.isAcceptingMessage
                 token.username = user.username
 
                 //token ke andar bohot sarre value hain jisse no of  request minimize kar sakta haun tuh
             }
+            console.log("JWT Token:", token); // Ch
           return token
         },
         async session({ session, token }) {
+            console.log("Session Callback - Token:", token);
             if(token){
                 session.user.id = token.id
                 session.user.isVerified = token.isVerified
@@ -70,52 +82,13 @@ export const authOptions:NextAuthOptions={
             return session
         },
     },
-    pages:{
-        signIn:'/signin'
-    },
     session:{
         strategy:"jwt"
     },
     secret:process.env.NEXTAUTH_SECRET,
     
-}
+    pages:{
+        signIn:'/sign-in'
+    },
+};
 
-
-// import { NextAuthOptions } from "next-auth";
-// import Credentials, { CredentialsProvider } from "next-auth/providers/credentials";
-// import bcrypt from "bcryptjs"
-// const prisma = new PrismaClient()
-// import { PrismaClient } from "@prisma/client";
-// export const authOptions :NextAuthOptions={
-//     providers:[
-//         CredentialsProvider({
-//             id:"credentials",
-//             name:"credentials",
-//             credentials:{
-//                 username:{label:"username",type:"text"},
-//                 password:{label:"password",type:"text"}
-
-//             },
-//             async authorize(credentials:any):Promise<any>{
-//                 try {
-//                     const user= await prisma.user.findUnique({
-//                         where:{
-//                             OR:[
-//                                 {email:credentials.identifier},
-//                                 {isVerified:true}
-//                             ]
-//                         }
-//                     })
-
-//                     if(!user){
-//                         throw new Error('No User found')
-//                     }
-//                 } catch (error:any) {
-//                     // console.log(error);
-//                     return null
-                    
-//                 } 
-//             }
-//         })
-//     ]
-// }

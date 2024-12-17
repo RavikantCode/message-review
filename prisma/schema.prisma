@@ -15,20 +15,20 @@ datasource db {
 
 model Message{
     id        Int      @id @default(autoincrement())
-    userId  Int 
-    user User @relation(fields:[userId],references:[id])
-    content String
+    userId    Int 
+    user      User @relation(fields:[userId],references:[id])
+    content   String
     createdAt DateTime @default(now())
 }
 
 model User{
-  id Int @id @default(autoincrement())
-  username String @unique 
-  email String @unique 
-  password String 
+  id         Int @id @default(autoincrement())
+  username   String @unique 
+  email      String @unique 
+  password   String 
   verifyCode String
   verifyCodeExpiry DateTime
-  isVerified Boolean @default(false)
+  isVerified Boolean @default(true)
   isAcceptingMessage Boolean
   messages Message[]
 }
